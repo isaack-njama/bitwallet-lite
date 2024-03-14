@@ -34,3 +34,5 @@ Contributions are welcome! If you'd like to contribute to this project, feel fre
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+Happy Hacking! 🚀
