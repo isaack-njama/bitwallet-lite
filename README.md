@@ -11,10 +11,10 @@
 
 ```sh
 # Clone the repository
-git clone git@github.com:isaack-njama/bitwallet-lite.git
+git clone git@github.com:isaack-njama/bitwallet.git
 
 # Navigate to the project directory
-cd bitwallet-lite
+cd bitwallet
 
 # Build the project
 cargo build
