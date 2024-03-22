@@ -5,8 +5,8 @@ use bitcoin::util::address::Address;
 use bitcoin::secp256k1::{SecretKey, Secp256k1};
 use bitcoin::secp256k1::PublicKey as SecpPublicKey;
 use bitcoin::PublicKey;
-use crate::wallet::WalletInfo;
-use crate::wallet::{Wallet, ImportWalletInfo};
+use crate::wallet_struct::WalletInfo;
+use crate::wallet_struct::{WalletStruct, ImportWalletInfo};
 use crate::mnemonic::MnemonicPhrase;
 use crate::libs::db_connection::DbConnection;
 use log::debug;
@@ -16,7 +16,7 @@ use log::debug;
 async fn create_wallet(info: web::Json<WalletInfo> ) -> HttpResponse {
 
     let name = info.name.clone();
-    let wallet = Wallet::new(&name);
+    let wallet = WalletStruct::new(&name);
     match wallet {
         Ok(wallet) => HttpResponse::Ok().json(wallet),
         Err(e) => HttpResponse::BadRequest().body(e.to_string()),
