@@ -1,9 +1,10 @@
 
+mod routes;
 pub mod wallet_struct;
 
-use bdk::Wallet;
-use bdk::blockchain::ElectrumBlockchain;
-use bdk::electrum_client::Client;
+use actix_web::{App, HttpServer};
+use routes::configure_routes;
+
 
 
 #[actix_web::main]
