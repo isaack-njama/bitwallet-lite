@@ -1,15 +1,11 @@
 
+
 use serde::{Deserialize, Serialize};
 
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use bdk::{
-  Wallet,
-  SyncOptions,
-  database::MemoryDatabase,
-  electrum_client::Client,
-  bitcoin::Amount,
-  TransactionDetails,
-  Error
+   database::MemoryDatabase, electrum_client::Client, Error, FeeRate, SyncOptions, TransactionDetails, Wallet
+  
 };
 
 
@@ -68,6 +64,25 @@ impl WalletStruct {
 
     wallet.sync(&blockchain, SyncOptions::default())?;
 
+  /*    // add some funds to the wallet
+      let mut builder = wallet.build_tx();
+      builder
+          .add_recipient(wallet.get_address(New).unwrap().payload.script_pubkey(), 100_000)
+          .enable_rbf()
+          .do_not_spend_change()
+          .fee_rate(FeeRate::from_sat_per_vb(5.0));
+      let (psbt, _) = builder.finish()?;
+
+      let sign_options = SignOptions::default(); // or whatever options you need
+        wallet.sign(&mut psbt, sign_options)?;
+        
+        let rpc_url = "http://127.0.0.1:8332";
+        let rpc_auth = Auth::UserPass("username".to_string(), "password".to_string());
+        let rpc_client = Client::new(rpc_url, rpc_auth).unwrap();
+        let raw_tx_bytes = psbt.global.unsigned_tx.clone().unwrap().consensus_encode();
+        let txid = rpc_client.send_raw_transaction(raw_tx_bytes)?; */
+
+
     Ok(WalletStruct {
         name: name.to_string(),
         address: Some(wallet.get_address(New).unwrap().to_string()),
@@ -122,18 +137,29 @@ impl WalletStruct {
       
       // Instantiate a wallet object from the WalletStruct data
       let wallet = WalletStruct::create_wallet_from_struct(wallet_data)?;
+      let client = Client::new("ssl://electrum.blockstream.info:60002")?;
+      let blockchain = ElectrumBlockchain::from(client);
+
+      wallet.sync(&blockchain, SyncOptions::default())?;
   
-      // Send Bitcoin to the recipient address
-      let tx_details = wallet.send(vec![(recipient_address.payload.script_pubkey(), Amount::from_sat(amount))], None)?;
+      let (_psbt, details) = {
+          let mut builder =  wallet.build_tx();
+          builder
+              .add_recipient(recipient_address.payload.script_pubkey(), amount)
+              .enable_rbf()
+              .do_not_spend_change()
+              .fee_rate(FeeRate::from_sat_per_vb(5.0));
+          builder.finish()?
+      };
   
-      Ok(tx_details)
+     Ok(details)
+    
   }
 
   fn create_wallet_from_struct(wallet_data: &WalletStruct) -> Result<Wallet<MemoryDatabase>, Error> {
     // Extract relevant data from the WalletStruct
     let mnemonic = wallet_data.mnemonic.as_ref().ok_or(Error::Generic("Mnemonic phrase not found".to_string()))?;
-    let network = bitcoin::Network::Bitcoin; // Set the Bitcoin network (e.g., Bitcoin mainnet)
-    
+  
     // Create a new wallet from the mnemonic
     let wallet = Wallet::new(mnemonic, None,bdk::bitcoin::Network::Testnet, MemoryDatabase::default())?;
 

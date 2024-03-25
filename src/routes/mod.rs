@@ -9,6 +9,8 @@ async fn create_wallet(info: web::Json<WalletInfo> ) -> HttpResponse {
 
     let name = info.name.clone();
     let wallet = WalletStruct::create_wallet(&name);
+
+
     match wallet {
         Ok(wallet) => HttpResponse::Ok().json(wallet),
         Err(e) => HttpResponse::BadRequest().body(e.to_string()),
@@ -18,7 +20,7 @@ async fn create_wallet(info: web::Json<WalletInfo> ) -> HttpResponse {
  
 // Handler function for importing an existing wallet
  async fn import_wallet(info: web::Json<ImportWalletInfo>) -> HttpResponse {
-    let phrase = info.phrase.clone();
+   
     let wallet = WalletStruct::import_wallet(&info.phrase);
     match wallet {
         Ok(wallet) => HttpResponse::Ok().json(wallet),
@@ -42,7 +44,7 @@ async fn send_bitcoin(info: web::Json<SendBitcoinInfo>) -> HttpResponse {
     }
 }
 
-async fn generate_new_address(info: web::Json<WalletInfo>) -> HttpResponse {
+async fn get_address(info: web::Json<WalletInfo>) -> HttpResponse {
     let name = info.name.clone();
     let wallet = WalletStruct::import_wallet(&name);
     match wallet {
@@ -67,7 +69,7 @@ pub fn configure_routes(cfg: &mut web::ServiceConfig) {
         .route("/create_wallet", web::post().to(create_wallet))
         .route("/import_wallet", web::post().to(import_wallet))
         .route("/send_bitcoin", web::post().to(send_bitcoin))
-        .route("/generate_new_address", web::post().to(generate_new_address))
+        .route("/generate_new_address", web::post().to(get_address))
 
     );
 }
