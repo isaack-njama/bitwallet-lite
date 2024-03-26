@@ -24,6 +24,23 @@ mod tests {
     }
 
     #[test]
+    fn test_get_wallet() {
+        let phrase = "screen always funny riot garment emerge canvas insane chuckle ice decade cigar";
+
+        let wallet_result = WalletStruct::get_wallet(phrase);
+
+        match wallet_result {
+            Ok(wallet) => {
+                assert_eq!(wallet.network(), bdk::bitcoin::Network::Testnet);
+
+            }
+            Err(err) => {
+                panic!("Failed to create wallet: {:?}", err);
+            }
+        }
+    }
+
+    #[test]
     fn test_import_wallet() {
         // Define a sample mnemonic phrase
         let mnemonic_phrase =
