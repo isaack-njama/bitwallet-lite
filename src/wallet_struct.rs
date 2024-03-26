@@ -1,13 +1,10 @@
 
 
 use serde::{Deserialize, Serialize};
-
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use bdk::{
-  database::{BatchDatabase, MemoryDatabase}, electrum_client::Client, Error, FeeRate, SyncOptions, TransactionDetails, Wallet,
-  wallet::AddressIndex
+   database::{ BatchDatabase, MemoryDatabase}, electrum_client::Client, wallet::AddressIndex, Error, FeeRate, SyncOptions, TransactionDetails, Wallet
 };
-
 
 use std::str::FromStr;
 use bdk::wallet::AddressIndex::New;
@@ -17,6 +14,7 @@ use bitcoin::{secp256k1, util::bip32::{ExtendedPrivKey, ExtendedPubKey}, Network
 use bitcoin::util::bip32::ChildNumber;
 use bdk::bitcoin::Address as BitcoinAddress;
 
+use bitcoin::secp256k1::Secp256k1;
 
 #[derive(Deserialize, Serialize)]
 pub struct WalletStruct  {
@@ -25,6 +23,7 @@ pub struct WalletStruct  {
   pub public_key: Option<String>,
   pub private_key: Option<String>,
   pub mnemonic: Option<String>,
+  pub balance: Option<WalletBalance>,
 }
 
 impl WalletStruct {
@@ -65,12 +64,15 @@ impl WalletStruct {
     wallet.sync(&blockchain, SyncOptions::default())?;
 
 
+
+
     Ok(WalletStruct {
         name: name.to_string(),
         address: Some(wallet.get_address(New).unwrap().to_string()),
         public_key: Some(extended_public_key.to_string()),
         private_key: Some(extended_private_key.to_string()),
        mnemonic: Some(mnemonic.phrase().to_string()),
+        balance: Some(WalletStruct::get_balance(&wallet).unwrap()),
     })
   }
 
@@ -91,7 +93,7 @@ impl WalletStruct {
     let database = MemoryDatabase::default();
     let wallet = Wallet::new(
         &descriptor,
-        None,
+        Some(&descriptor),
         bdk::bitcoin::Network::Testnet,
         database,
     )?;
@@ -108,6 +110,7 @@ impl WalletStruct {
         public_key: Some(extended_public_key.to_string()),
         private_key: None,
         mnemonic: Some(mnemonic.phrase().to_string()),
+        balance: Some(WalletStruct::get_balance(&wallet).unwrap()),
       })
   }
 
@@ -124,17 +127,22 @@ impl WalletStruct {
 
       wallet.sync(&blockchain, SyncOptions::default())?;
   
-      let (_psbt, details) = {
-          let mut builder =  wallet.build_tx();
-          builder
+      
+      let mut tx_builder =  wallet.build_tx();
+
+          tx_builder
               .add_recipient(recipient_address.payload.script_pubkey(), amount)
               .enable_rbf()
               .do_not_spend_change()
-              .fee_rate(FeeRate::from_sat_per_vb(5.0));
-          builder.finish()?
-      };
+              .fee_rate(FeeRate::from_sat_per_vb(0.00001));
+
+      let (psbt, tx_details) = tx_builder.finish()?;
+      
+      /*wallet.sign(&psbt)?;
+      wallet.broadcast(&psbt)?; */
+
   
-     Ok(details)
+     Ok(tx_details)
     
   }
 
@@ -200,6 +208,32 @@ impl WalletStruct {
         untrusted_pending: balance.untrusted_pending,
     })
   }
+
+  
+
+  fn generate_descriptor() -> Result<String, Box<dyn std::error::Error>>{
+
+    let mnemonic = WalletStruct::generate_mnemonic().unwrap();
+
+     print!("Mnemonic: {:?}", mnemonic.phrase());
+    let seed = Seed::new(&mnemonic, "");
+    // Derive the master extended private key
+    let master_extended_private_key = ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes())?;
+    let extended_private_key = master_extended_private_key.derive_priv(
+        &Secp256k1::new(),
+        &[
+            ChildNumber::from_hardened_idx(84 + 0)?,
+        ],
+    )?;
+
+    // Derive the extended public key from the extended private key
+    let extended_public_key = ExtendedPubKey::from_private(&Secp256k1::new(), &extended_private_key);
+    let derivation_path = "m/84'/1'/0'";
+    let descriptor_string = format!("wpkh([{}]{})", derivation_path, extended_public_key);
+
+    Ok(descriptor_string)
+   
+}
  
 }
 
