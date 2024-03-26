@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use bdk::{
-   database::MemoryDatabase, electrum_client::Client, Error, FeeRate, SyncOptions, TransactionDetails, Wallet
-  
+  database::{BatchDatabase, MemoryDatabase}, electrum_client::Client, Error, FeeRate, SyncOptions, TransactionDetails, Wallet,
+  wallet::AddressIndex
 };
 
 
@@ -64,24 +64,6 @@ impl WalletStruct {
 
     wallet.sync(&blockchain, SyncOptions::default())?;
 
-  /*    // add some funds to the wallet
-      let mut builder = wallet.build_tx();
-      builder
-          .add_recipient(wallet.get_address(New).unwrap().payload.script_pubkey(), 100_000)
-          .enable_rbf()
-          .do_not_spend_change()
-          .fee_rate(FeeRate::from_sat_per_vb(5.0));
-      let (psbt, _) = builder.finish()?;
-
-      let sign_options = SignOptions::default(); // or whatever options you need
-        wallet.sign(&mut psbt, sign_options)?;
-        
-        let rpc_url = "http://127.0.0.1:8332";
-        let rpc_auth = Auth::UserPass("username".to_string(), "password".to_string());
-        let rpc_client = Client::new(rpc_url, rpc_auth).unwrap();
-        let raw_tx_bytes = psbt.global.unsigned_tx.clone().unwrap().consensus_encode();
-        let txid = rpc_client.send_raw_transaction(raw_tx_bytes)?; */
-
 
     Ok(WalletStruct {
         name: name.to_string(),
@@ -130,13 +112,13 @@ impl WalletStruct {
   }
 
     // Function to send Bitcoin to a recipient address
-  pub fn send_bitcoin(wallet_data: &WalletStruct, recipient_address: &str, amount: u64) -> Result<TransactionDetails, Error> {
+  pub fn send_bitcoin<D: BatchDatabase>(wallet: &Wallet<D>, recipient_address: &str, amount: u64) -> Result<TransactionDetails, Error> {
       // Convert the recipient address string to a Bitcoin Address object
       let recipient_address = BitcoinAddress::from_str(recipient_address)
           .map_err(|e| Error::Generic(e.to_string()))?; // Handle potential parsing error
       
       // Instantiate a wallet object from the WalletStruct data
-      let wallet = WalletStruct::create_wallet_from_struct(wallet_data)?;
+      //let wallet = WalletStruct::create_wallet_from_struct(wallet_data)?;
       let client = Client::new("ssl://electrum.blockstream.info:60002")?;
       let blockchain = ElectrumBlockchain::from(client);
 
@@ -156,23 +138,69 @@ impl WalletStruct {
     
   }
 
-  fn create_wallet_from_struct(wallet_data: &WalletStruct) -> Result<Wallet<MemoryDatabase>, Error> {
-    // Extract relevant data from the WalletStruct
-    let mnemonic = wallet_data.mnemonic.as_ref().ok_or(Error::Generic("Mnemonic phrase not found".to_string()))?;
-  
-    // Create a new wallet from the mnemonic
-    let wallet = Wallet::new(mnemonic, None,bdk::bitcoin::Network::Testnet, MemoryDatabase::default())?;
 
-    Ok(wallet)
-}
-
-  pub fn get_address(wallet: &WalletStruct) -> Result<Option<String>, Error> {
+  pub fn get_address(wallet: &Wallet<MemoryDatabase>) -> Result<String, Error> {
     // Generate a new receiving address
-    
-    Ok(wallet.address.clone())
+    let address = wallet.get_address(AddressIndex::New)?;
+    Ok(address.to_string())
 
   }
-  
+
+
+  pub fn get_wallet(phrase: &str) -> Result<Wallet<MemoryDatabase>, Error> {
+    // Parse the mnemonic phrase
+    let mnemonic = Mnemonic::from_phrase(phrase, Language::English)
+        .map_err(|e| Error::Generic(format!("Error parsing mnemonic phrase: {}", e)))?;
+   
+    let seed = Seed::new(&mnemonic, "");
+    let master_extended_private_key = bitcoin::util::bip32::ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes())
+    .map_err(|e| Error::Generic(format!("Error creating master extended private key: {}", e)))?;
+
+    let extended_public_key = ExtendedPubKey::from_private(
+        &secp256k1::Secp256k1::new(),
+      &master_extended_private_key);
+    // Construct descriptor
+    let descriptor = format!("wpkh({})", extended_public_key);
+
+
+    // Create a wallet from the given mnemonic phrase
+    let wallet = Wallet::new(
+       &descriptor,
+        None, // Passphrase if one was used during wallet creation
+        bdk::bitcoin::Network::Testnet,  // Specify the network
+        <_>::default(), // Use the default database type
+      )?;
+      
+      Ok(wallet)
+  }
+
+ /*  pub fn get_wallet_mnemonic(wallet: &Wallet<MemoryDatabase>) -> Result<String, Error> {
+    // Get the mnemonic phrase from the wallet
+    let mnemonic = wallet
+        .public_descriptor()
+        .parse()
+        .map_err(|e| Error::Generic(format!("Error parsing descriptor: {}", e)))?
+        .unwrap().phrase().to_string();
+    Ok(mnemonic)
+  } */
+
+  pub fn get_transactions(wallet: &Wallet<MemoryDatabase>) -> Result<Vec<TransactionDetails>, Error> {
+    // Get the list of transactions from the wallet
+    let transactions = wallet.list_transactions(true)?;
+    Ok(transactions)
+  }
+
+  pub fn get_balance(wallet: &Wallet<MemoryDatabase>) -> Result<WalletBalance, Error> {
+    // Get the balance of the wallet
+    let balance = wallet.get_balance()?;
+    Ok(WalletBalance {
+        immature: balance.immature,
+        trusted_pending: balance.trusted_pending,
+        confirmed: balance.confirmed,
+        untrusted_pending: balance.untrusted_pending,
+    })
+  }
+ 
 }
 
 
@@ -197,4 +225,12 @@ pub struct SendBitcoinInfo {
 #[derive(Serialize, Deserialize)]
 pub struct NewAddressInfo {
   pub phrase: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct WalletBalance {
+  pub immature: u64,
+  pub trusted_pending: u64,
+  pub confirmed: u64,
+  pub untrusted_pending : u64,
 }
