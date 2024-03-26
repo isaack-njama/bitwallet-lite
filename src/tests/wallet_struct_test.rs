@@ -25,14 +25,14 @@ mod tests {
 
     #[test]
     fn test_get_wallet() {
-        let phrase = "screen always funny riot garment emerge canvas insane chuckle ice decade cigar";
+        let phrase =
+            "screen always funny riot garment emerge canvas insane chuckle ice decade cigar";
 
         let wallet_result = WalletStruct::get_wallet(phrase);
 
         match wallet_result {
             Ok(wallet) => {
                 assert_eq!(wallet.network(), bdk::bitcoin::Network::Testnet);
-
             }
             Err(err) => {
                 panic!("Failed to create wallet: {:?}", err);
@@ -65,15 +65,17 @@ mod tests {
         let master_extended_private_key =
             ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
         let extended_private_key = master_extended_private_key
-            .derive_priv(&secp256k1::Secp256k1::new(), &[ChildNumber::from_hardened_idx(84 + 0).unwrap()])
+            .derive_priv(
+                &secp256k1::Secp256k1::new(),
+                &[ChildNumber::from_hardened_idx(84 + 0).unwrap()],
+            )
             .unwrap();
-
 
         // Derive the extended public key from the extended private key
         let extended_public_key =
             ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
 
-        let descriptor= format!("wpkh({})", extended_public_key.to_string());
+        let descriptor = format!("wpkh({})", extended_public_key.to_string());
 
         let database = MemoryDatabase::default();
 
@@ -97,16 +99,20 @@ mod tests {
         let master_extended_private_key =
             ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
         let extended_private_key = master_extended_private_key
-            .derive_priv(&secp256k1::Secp256k1::new(), &[ChildNumber::from_hardened_idx(84 + 0).unwrap()])
+            .derive_priv(
+                &secp256k1::Secp256k1::new(),
+                &[ChildNumber::from_hardened_idx(84 + 0).unwrap()],
+            )
             .unwrap();
 
         let extended_public_key =
             ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
 
-        let descriptor= format!("wpkh({})", extended_public_key.to_string());
+        let descriptor = format!("wpkh({})", extended_public_key.to_string());
 
         let database = MemoryDatabase::default();
-        let wallet = Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
+        let wallet =
+            Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
 
         let transactions = match WalletStruct::get_transactions(&wallet) {
             Ok(transactions) => transactions,
@@ -125,16 +131,20 @@ mod tests {
         let master_extended_private_key =
             ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
         let extended_private_key = master_extended_private_key
-            .derive_priv(&secp256k1::Secp256k1::new(), &[ChildNumber::from_hardened_idx(84 + 0).unwrap()])
+            .derive_priv(
+                &secp256k1::Secp256k1::new(),
+                &[ChildNumber::from_hardened_idx(84 + 0).unwrap()],
+            )
             .unwrap();
 
         let extended_public_key =
             ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
 
-        let descriptor= format!("wpkh({})", extended_public_key.to_string());
+        let descriptor = format!("wpkh({})", extended_public_key.to_string());
 
         let database = MemoryDatabase::default();
-        let wallet = Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
+        let wallet =
+            Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
 
         // Call the get_balance function with the mock Wallet<MemoryDatabase>
         let balance = match WalletStruct::get_balance(&wallet) {
@@ -145,5 +155,42 @@ mod tests {
         };
 
         assert_eq!(balance.immature, 0); // Assert that immature balance is 0
+    }
+
+    #[test]
+    fn test_send_bitcoin() {
+        let mnemonic = WalletStruct::generate_mnemonic().unwrap();
+        let seed = Seed::new(&mnemonic, "");
+        let master_extended_private_key =
+            ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
+        let extended_private_key = master_extended_private_key
+            .derive_priv(
+                &secp256k1::Secp256k1::new(),
+                &[ChildNumber::from_hardened_idx(84 + 0).unwrap()],
+            )
+            .unwrap();
+
+        let extended_public_key =
+            ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
+
+        let descriptor = format!("wpkh({})", extended_public_key.to_string());
+
+        let database = MemoryDatabase::default();
+        let wallet = Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
+
+        let recipient_address = "tb1q2d4s9mk2qjdcylhvy42tzj32wr3pxjl4a48n09";
+        let amount = 34; // Amount in satoshis
+
+        let transaction_result = WalletStruct::send_bitcoin(&wallet, recipient_address, amount);
+
+        match transaction_result {
+            Ok(details) => {
+                assert!(details.fee < Some(1000)); // Ensure that the fee is reasonable
+            }
+            Err(err) => {
+                println!("Failed to send Bitcoin: {:?}", err);
+                assert!(err.to_string().contains("bech32 address encoding error"));
+            }
+        }
     }
 }
