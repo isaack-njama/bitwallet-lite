@@ -77,25 +77,20 @@ mod tests {
     fn test_get_transactions() {
         let mnemonic = WalletStruct::generate_mnemonic().unwrap();
         let seed = Seed::new(&mnemonic, "");
-        // Derive the master extended private key
         let master_extended_private_key =
             ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
         let extended_private_key = master_extended_private_key
             .derive_priv(&secp256k1::Secp256k1::new(), &[ChildNumber::from_hardened_idx(84 + 0).unwrap()])
             .unwrap();
 
-
-        // Derive the extended public key from the extended private key
         let extended_public_key =
             ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
 
         let descriptor= format!("wpkh({})", extended_public_key.to_string());
 
-        // Create a mock Wallet<MemoryDatabase> object
         let database = MemoryDatabase::default();
         let wallet = Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
 
-        // Call the get_transactions function with the mock Wallet<MemoryDatabase>
         let transactions = match WalletStruct::get_transactions(&wallet) {
             Ok(transactions) => transactions,
             Err(err) => {
@@ -103,8 +98,35 @@ mod tests {
             }
         };
 
-        // Add assertions to check the properties of the returned transactions
         assert_eq!(transactions.len(), 0); // Assert that initially there are no transactions
-        // Add more assertions as needed
+    }
+
+    #[test]
+    fn test_get_balance() {
+        let mnemonic = WalletStruct::generate_mnemonic().unwrap();
+        let seed = Seed::new(&mnemonic, "");
+        let master_extended_private_key =
+            ExtendedPrivKey::new_master(Network::Testnet, &seed.as_bytes()).unwrap();
+        let extended_private_key = master_extended_private_key
+            .derive_priv(&secp256k1::Secp256k1::new(), &[ChildNumber::from_hardened_idx(84 + 0).unwrap()])
+            .unwrap();
+
+        let extended_public_key =
+            ExtendedPubKey::from_private(&secp256k1::Secp256k1::new(), &extended_private_key);
+
+        let descriptor= format!("wpkh({})", extended_public_key.to_string());
+
+        let database = MemoryDatabase::default();
+        let wallet = Wallet::new(&descriptor, None, bdk::bitcoin::Network::Testnet, database).unwrap();
+
+        // Call the get_balance function with the mock Wallet<MemoryDatabase>
+        let balance = match WalletStruct::get_balance(&wallet) {
+            Ok(balance) => balance,
+            Err(err) => {
+                panic!("Failed to get balance: {:?}", err);
+            }
+        };
+
+        assert_eq!(balance.immature, 0); // Assert that immature balance is 0
     }
 }
