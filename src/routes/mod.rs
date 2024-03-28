@@ -1,9 +1,8 @@
 use crate::wallet_struct::{ImportWalletInfo, NewAddressInfo, SendBitcoinInfo, WalletInfo, WalletStruct};
 use actix_web::web;
 use actix_web::HttpResponse;
-use crate::wallet_struct::NewAddressInfo;
 use crate::wallet_struct::WalletAddress;
-use crate::wallet_struct::{WalletInfo,WalletStruct, ImportWalletInfo, SendBitcoinInfo};
+
 
 use serde_json::json;
 
