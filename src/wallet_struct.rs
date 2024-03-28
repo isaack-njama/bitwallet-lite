@@ -3,12 +3,12 @@
 use serde::{Deserialize, Serialize};
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use bdk::{
-   database::{ BatchDatabase, MemoryDatabase}, electrum_client::Client, wallet::AddressIndex, Error, FeeRate, SyncOptions, TransactionDetails, Wallet
+   blockchain::ElectrumBlockchain, database::{ BatchDatabase, MemoryDatabase}, electrum_client::Client, wallet::AddressIndex, Error, FeeRate, SignOptions, SyncOptions, TransactionDetails, Wallet
 };
 
 use std::str::FromStr;
 use bdk::wallet::AddressIndex::New;
-use bdk::blockchain::ElectrumBlockchain;
+use bbdk::blockchain::electrum;
 use bitcoin::{secp256k1, util::bip32::{ExtendedPrivKey, ExtendedPubKey}, Network};
 
 use bitcoin::util::bip32::ChildNumber;
@@ -133,14 +133,15 @@ impl WalletStruct {
           tx_builder
               .add_recipient(recipient_address.payload.script_pubkey(), amount)
               .enable_rbf()
-              .do_not_spend_change()
+              //.do_not_spend_change()
               .fee_rate(FeeRate::from_sat_per_vb(0.00001));
 
       let (psbt, tx_details) = tx_builder.finish()?;
       
-      /*wallet.sign(&psbt)?;
-      wallet.broadcast(&psbt)?; */
-
+      wallet.sign(&mut psbt, SignOptions::default())?;
+      
+      // Broadcast the transaction
+      ElectrumBlockchain::from(client).broadcast(&psbt.extract_tx())?;
   
      Ok(tx_details)
     
@@ -182,15 +183,6 @@ impl WalletStruct {
       Ok(wallet)
   }
 
- /*  pub fn get_wallet_mnemonic(wallet: &Wallet<MemoryDatabase>) -> Result<String, Error> {
-    // Get the mnemonic phrase from the wallet
-    let mnemonic = wallet
-        .public_descriptor()
-        .parse()
-        .map_err(|e| Error::Generic(format!("Error parsing descriptor: {}", e)))?
-        .unwrap().phrase().to_string();
-    Ok(mnemonic)
-  } */
 
   pub fn get_transactions(wallet: &Wallet<MemoryDatabase>) -> Result<Vec<TransactionDetails>, Error> {
     // Get the list of transactions from the wallet
@@ -206,6 +198,39 @@ impl WalletStruct {
         trusted_pending: balance.trusted_pending,
         confirmed: balance.confirmed,
         untrusted_pending: balance.untrusted_pending,
+    })
+  }
+
+  pub fn get_wallet_by_address(address: &str) -> Result<WalletStruct, Error> {
+    // Initialize the Electrum client
+    let client = Client::new("ssl://electrum.blockstream.info:60002")?;
+    let blockchain = ElectrumBlockchain::from(client);
+
+
+    // Construct the descriptor
+    let descriptor = WalletStruct::generate_descriptor().unwrap();
+
+    // Initialize the wallet
+    let database = MemoryDatabase::default();
+    let wallet = Wallet::new(
+        &descriptor,
+  
+        None,
+        bdk::bitcoin::Network::Testnet,
+        database,
+
+    )?;
+
+    // Synchronize the wallet
+    wallet.sync(&blockchain, SyncOptions::default())?;
+
+    Ok(WalletStruct {
+        name: "Imported Wallet".to_string(),
+        address: Some(wallet.get_address(New).unwrap().to_string()),
+        public_key: None,
+        private_key: None,
+        mnemonic: None,
+        balance: Some(WalletStruct::get_balance(&wallet).unwrap()),
     })
   }
 
@@ -268,3 +293,9 @@ pub struct WalletBalance {
   pub confirmed: u64,
   pub untrusted_pending : u64,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct WalletAddress {
+  pub address: String,
+}
+
