@@ -18,4 +18,4 @@ simplelog = "0.8"
 log = "0.4"
 dotenv = "0.15.0"
 tiny-bip39 = "1.0.0"
-actix-cors = "0.7.0"
+
