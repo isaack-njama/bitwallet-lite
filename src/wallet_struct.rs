@@ -3,12 +3,11 @@
 use serde::{Deserialize, Serialize};
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use bdk::{
-   blockchain::ElectrumBlockchain, database::{ BatchDatabase, MemoryDatabase}, electrum_client::Client, wallet::AddressIndex, Error, FeeRate, SignOptions, SyncOptions, TransactionDetails, Wallet
+   blockchain::ElectrumBlockchain, database::{ BatchDatabase, MemoryDatabase}, electrum_client::Client, wallet::AddressIndex, Error, FeeRate,SyncOptions, TransactionDetails, Wallet
 };
 
 use std::str::FromStr;
 use bdk::wallet::AddressIndex::New;
-use bdk::blockchain::electrum;
 use bitcoin::{secp256k1, util::bip32::{ExtendedPrivKey, ExtendedPubKey}, Network};
 
 use bitcoin::util::bip32::ChildNumber;
@@ -136,7 +135,7 @@ impl WalletStruct {
               //.do_not_spend_change()
               .fee_rate(FeeRate::from_sat_per_vb(0.00001));
 
-      let (psbt, tx_details) = tx_builder.finish()?;
+      let (_psbt, tx_details) = tx_builder.finish()?;
       
      // wallet.sign(&mut psbt, SignOptions::default())?;
       
@@ -201,7 +200,7 @@ impl WalletStruct {
     })
   }
 
-  pub fn get_wallet_by_address(address: &str) -> Result<WalletStruct, Error> {
+  pub fn get_wallet_by_address(_address: &str) -> Result<WalletStruct, Error> {
     // Initialize the Electrum client
     let client = Client::new("ssl://electrum.blockstream.info:60002")?;
     let blockchain = ElectrumBlockchain::from(client);
