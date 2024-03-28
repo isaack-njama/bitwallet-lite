@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  bitwallet:
+    image: bitwallet:latest  # Replace with the name of your Docker image
+    container_name: bitwallet_app
+    ports:
+      - "8080:8080"  # Map container port 8080 to host port 8080
+    environment:
+      - RUST_LOG=info  # Set the logging level
+    restart: always  # Restart the container automatically if it exits
+ #docker compose up -d

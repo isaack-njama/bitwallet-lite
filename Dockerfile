@@ -1,31 +1,23 @@
 # Use a Rust base image
 FROM rust:1.75 as builder
 
-# Set the working directory inside the container
-WORKDIR /src/main
+# Create a new directory for the application
+WORKDIR /usr/src/bitwallet
 
-# Copy the Cargo.toml and Cargo.lock files to the container
-COPY Cargo.toml Cargo.lock ./
-
-# Build the dependencies without the source code
-RUN mkdir src && \
-    echo "fn main() {}" > src/main.rs && \
-    cargo build --release
-
-# Copy the source code into the container
+# Copy the Rust application code into the container
 COPY . .
 
-# Build the Rust application
+# Build the application
 RUN cargo build --release
 
-# Create a new lightweight image without the build dependencies
+# Use a smaller base image for the final image
 FROM debian:buster-slim
 
-# Set the working directory inside the container
-WORKDIR /src/main
+# Set the working directory to the location of the binary
+WORKDIR /usr/src/bitwallet
 
-# Copy the built executable from the builder stage
-COPY --from=builder /src/main/target/release/main .
+# Copy the binary from the builder stage to the final image
+COPY --from=builder /usr/src/bitwallet/target/release/bit_wallet_solution .
 
-# Set the command to run the application
-CMD ["./main"]
+# Run the application
+CMD ["./bitwallet"]
