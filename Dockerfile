@@ -2,7 +2,7 @@
 FROM rust:1.75 as builder
 
 # Set the working directory inside the container
-WORKDIR /usr/src/myapp
+WORKDIR /src/main
 
 # Copy the Cargo.toml and Cargo.lock files to the container
 COPY Cargo.toml Cargo.lock ./
@@ -22,10 +22,10 @@ RUN cargo build --release
 FROM debian:buster-slim
 
 # Set the working directory inside the container
-WORKDIR /usr/src/myapp
+WORKDIR /src/main
 
 # Copy the built executable from the builder stage
-COPY --from=builder /usr/src/myapp/target/release/myapp .
+COPY --from=builder /src/main/target/release/main .
 
 # Set the command to run the application
-CMD ["./myapp"]
+CMD ["./main"]
