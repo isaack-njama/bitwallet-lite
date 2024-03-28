@@ -8,7 +8,7 @@ use bdk::{
 
 use std::str::FromStr;
 use bdk::wallet::AddressIndex::New;
-use bbdk::blockchain::electrum;
+use bdk::blockchain::electrum;
 use bitcoin::{secp256k1, util::bip32::{ExtendedPrivKey, ExtendedPubKey}, Network};
 
 use bitcoin::util::bip32::ChildNumber;
@@ -138,10 +138,10 @@ impl WalletStruct {
 
       let (psbt, tx_details) = tx_builder.finish()?;
       
-      wallet.sign(&mut psbt, SignOptions::default())?;
+     // wallet.sign(&mut psbt, SignOptions::default())?;
       
       // Broadcast the transaction
-      ElectrumBlockchain::from(client).broadcast(&psbt.extract_tx())?;
+      //ElectrumBlockchain::from(client).broadcast(&psbt.extract_tx())?;
   
      Ok(tx_details)
     
