@@ -185,12 +185,23 @@ impl WalletStruct {
 
   pub fn get_transactions(wallet: &Wallet<MemoryDatabase>) -> Result<Vec<TransactionDetails>, Error> {
     // Get the list of transactions from the wallet
+    wallet.sync(
+      &ElectrumBlockchain::from(Client::new("ssl://electrum.blockstream.info:60002")?),
+      SyncOptions::default(),
+   )?;
+   
     let transactions = wallet.list_transactions(true)?;
     Ok(transactions)
   }
 
   pub fn get_balance(wallet: &Wallet<MemoryDatabase>) -> Result<WalletBalance, Error> {
     // Get the balance of the wallet
+
+    wallet.sync(
+      &ElectrumBlockchain::from(Client::new("ssl://electrum.blockstream.info:60002")?),
+      SyncOptions::default(),
+   )?;
+
     let balance = wallet.get_balance()?;
     Ok(WalletBalance {
         immature: balance.immature,

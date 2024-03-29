@@ -1,9 +1,7 @@
-#[cfg(test)]
-#[path = "./tests/wallet_struct_test.rs"]
-mod wallet_struct_test;
 
 mod routes;
 pub mod wallet_struct;
+
 
 use actix_cors::Cors;
 use actix_web::{App, HttpServer};
@@ -23,7 +21,7 @@ async fn main() -> std::io::Result<()> {
 
         App::new().wrap(cors).configure(configure_routes)
   })
-  .bind("0.0.0.1:8080")?
+  .bind("127.0.0.1:8080")?
   .run()
   .await
 }

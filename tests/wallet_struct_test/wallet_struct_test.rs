@@ -1,4 +1,6 @@
+
 #[cfg(test)]
+
 mod tests {
     use crate::wallet_struct::WalletStruct;
     use bdk::{database::MemoryDatabase, Wallet};

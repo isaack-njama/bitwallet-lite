@@ -1,23 +1,11 @@
-# Use a Rust base image
-FROM rust:1.75 as builder
+# 1. This tells docker to use the Rust official image
+FROM rust:1.49
 
-# Create a new directory for the application
-WORKDIR /usr/src/bitwallet
+# 2. Copy the files in your machine to the Docker image
+COPY ./ ./
 
-# Copy the Rust application code into the container
-COPY . .
-
-# Build the application
+# Build your program for release
 RUN cargo build --release
 
-# Use a smaller base image for the final image
-FROM debian:buster-slim
-
-# Set the working directory to the location of the binary
-WORKDIR /usr/src/bitwallet
-
-# Copy the binary from the builder stage to the final image
-COPY --from=builder /usr/src/bitwallet/target/release/bit_wallet_solution .
-
-# Run the application
-CMD ["./bitwallet"]
+# Run the binary
+CMD ["./target/release/holodeck"]
