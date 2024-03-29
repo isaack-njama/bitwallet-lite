@@ -189,7 +189,7 @@ impl WalletStruct {
       &ElectrumBlockchain::from(Client::new("ssl://electrum.blockstream.info:60002")?),
       SyncOptions::default(),
    )?;
-   
+
     let transactions = wallet.list_transactions(true)?;
     Ok(transactions)
   }
@@ -201,7 +201,7 @@ impl WalletStruct {
       &ElectrumBlockchain::from(Client::new("ssl://electrum.blockstream.info:60002")?),
       SyncOptions::default(),
    )?;
-
+     
     let balance = wallet.get_balance()?;
     Ok(WalletBalance {
         immature: balance.immature,
