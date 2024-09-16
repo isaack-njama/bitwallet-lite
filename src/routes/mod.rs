@@ -1,6 +1,9 @@
 use crate::wallet_struct::{ImportWalletInfo, NewAddressInfo, SendBitcoinInfo, WalletInfo, WalletStruct};
 use actix_web::web;
 use actix_web::HttpResponse;
+use crate::wallet_struct::WalletAddress;
+
+
 use serde_json::json;
 
 // Handler function for creating a new wallet
@@ -113,14 +116,29 @@ async fn get_balance(info: web::Json<NewAddressInfo>) -> HttpResponse {
     }
 }
 
+async fn get_wallet_by_address(info: web::Json<WalletAddress>) -> HttpResponse {
+    let address = info.address.clone();
+    let wallet = WalletStruct::get_wallet_by_address(&address);
+    match wallet {
+        Ok(wallet) => HttpResponse::Ok().json(wallet),
+       Err(e) => HttpResponse::BadRequest().json(json!({
+            "error": format!("{}", e)
+        })),
+    }
+}
+
+
+
+
 pub fn configure_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(
         web::scope("/api")
-            .route("/create_wallet", web::post().to(create_wallet))
-            .route("/import_wallet", web::post().to(import_wallet))
-            .route("/send_bitcoin", web::post().to(send_bitcoin))
-            .route("/get_wallet_address", web::post().to(get_address))
-            .route("/list_transactions", web::post().to(list_transactions))
-            .route("/get_balance", web::post().to(get_balance)),
+          .route("/create_wallet", web::post().to(create_wallet))
+          .route("/import_wallet", web::post().to(import_wallet))
+          .route("/send_bitcoin", web::post().to(send_bitcoin))
+          .route("/get_wallet_address", web::post().to(get_address))
+          .route("/list_transactions", web::post().to(list_transactions))
+          .route("/get_balance", web::post().to(get_balance))
+          .route("/get_wallet_by_address", web::post().to(get_wallet_by_address))
     );
 }
